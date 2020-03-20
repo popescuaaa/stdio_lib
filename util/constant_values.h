@@ -1,7 +1,7 @@
 #ifndef CONSTANT_VALUES_H
 #define CONSTANT_VALUES_H
 
-#define BUFFSIZE                                1024
+#define BUFFSIZE                                4096
 
 
 /****************** File opening modes ********************/

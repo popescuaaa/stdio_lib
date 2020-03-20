@@ -113,6 +113,8 @@ int so_fclose(SO_FILE *stream)
 
     if (closing_result == SUCCESS)
     {
+        free(stream -> _buffer);
+        free(stream);
         return closing_result;
     }
 
@@ -145,6 +147,7 @@ int so_fflush(SO_FILE *stream)
             write_result = write(stream -> _file_descriptor,
                                 stream -> _buffer,
                                 stream  -> _current_position);
+
             if (write_result > 0)
             {
                 memset(stream -> _buffer, 0, BUFFSIZE);
@@ -172,6 +175,8 @@ int so_fflush(SO_FILE *stream)
         return SUCCESS;
     }
     
+    stream -> _error_flag = WITH_ERROR;
+    return SO_EOF;
 }
 
 FUNC_DECL_PREFIX 
@@ -183,42 +188,139 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 FUNC_DECL_PREFIX 
 long so_ftell(SO_FILE *stream)
 {
-    return -1;
+    return 0;
 }
 
 FUNC_DECL_PREFIX
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-    return 0;
+    int read_amount = size * nmemb;
+    int index = 0;
+    int read_char;
+    
+    for (index = 0; index < read_amount; ++index)
+    {
+        read_char = so_fgetc(stream);
+
+        if (so_feof(stream) == 0)
+        {
+            *((char *)ptr + index) =  read_char; 
+        }
+        else
+        {
+            /* return how many did you read */
+            return index / size;
+        }
+
+    }
+    
+   
+
+    return nmemb / size;
 }
 
 FUNC_DECL_PREFIX
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-    return 0;
+    char *content = (char *) ptr;
+    int write_amount = nmemb * size;
+    int index = 0;
+    char write_status;
+
+    while(index < write_amount)
+    {
+        write_status = so_fputc(*(content + index), stream);
+        if (write_status == SO_EOF && *(content + index) != SO_EOF)
+        {
+            continue;
+        }
+
+        index++;
+    }   
+    
+
+    return nmemb / size;
 }
 
 FUNC_DECL_PREFIX 
 int so_fgetc(SO_FILE *stream)
 {
-    return SO_EOF;
+    int read_result;
+    int return_char;
+
+    stream -> _operation_history = READ_OP;
+
+    if ((stream -> _current_position == 0 && 
+         stream -> _buffer[stream -> _current_position] == '\0') ||
+         stream -> _current_position == stream -> _buffer_current_size)
+
+    {
+        read_result = read(stream -> _file_descriptor, 
+                       stream -> _buffer, 
+                       BUFFSIZE);
+
+        if (read_result > 0)
+        {   
+            if (stream -> _current_position == stream -> _buffer_current_size)
+            {
+                stream -> _read_bytes += read_result;
+            }
+
+            stream -> _buffer_current_size = read_result;
+            stream -> _current_position = 0;
+        } 
+        else
+        {
+            stream -> _error_flag = WITH_ERROR;
+            return SO_EOF;
+        }
+    }
+
+     /* 
+      Extend the char from the buffer, 
+      from the strem -> _current_position to an int 
+     */
+
+    return_char = (int) stream -> _buffer[stream -> _current_position];
+    stream -> _current_position++;
+
+    return return_char;
 }
+
 FUNC_DECL_PREFIX 
 int so_fputc(int c, SO_FILE *stream)
 {
+    stream -> _operation_history = WRITE_OP;
+
+    if (stream != NULL)
+    {
+        if (stream -> _current_position >= stream -> _buffer_current_size)
+        {
+            stream -> _read_bytes += stream -> _buffer_current_size;
+            if (so_fflush(stream) == SO_EOF)
+            {
+                return SO_EOF;
+            }
+        }
+        stream -> _buffer[stream -> _current_position] = c;
+        stream -> _current_position++;
+        return c;
+    }
+
+    stream -> _error_flag = WITH_ERROR;
     return SO_EOF;
 }
 
 FUNC_DECL_PREFIX 
 int so_feof(SO_FILE *stream)
 {
-    return 0;
+    return stream -> _error_flag;
 }
 
 FUNC_DECL_PREFIX 
 int so_ferror(SO_FILE *stream)
 {
-    return 0;
+    return stream -> _error_flag;
 }
 
 FUNC_DECL_PREFIX 
