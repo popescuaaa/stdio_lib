@@ -1,6 +1,15 @@
-build: utility.h constant_values.h so_stdio.h
-	gcc -Wall -g -fPIC -c so_stdio.c utility.h constant_values.h so_stdio.h
-	gcc -shared so_stdio.o -o libso_stdio.so
+CC = gcc
+CFLAGS = -Wall -fPIC
+
+LDFLAGS = -L.
+
+build:  libso_stdio.so
+
+
+libso_stdio.so: so_stdio.o
+	$(CC) -shared -o $@ $^
+
+so_stdio.o: so_stdio.c so_stdio.h
 
 clean:
-	rm -rf so_stdio.so libso_stdio.so
+	rm -f so_stdio.o libso_stdio.so

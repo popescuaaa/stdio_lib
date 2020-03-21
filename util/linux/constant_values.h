@@ -41,7 +41,9 @@
 
 /******************** Error flags **********************/
 #define NO_ERROR                                0
-#define WITH_ERROR                              1
+#define WITH_ERROR                              -1
 
+#define ENABLE                                  1
+#define DISABLE                                 0
 
 #endif /* CONSTANT_VALUES_H */

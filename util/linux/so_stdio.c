@@ -3,334 +3,482 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/wait.h>
 
 #include "so_stdio.h"
 #include "constant_values.h"
 #include "utility.h"
 
 /**
- *  FILE STRUCTURE : mult implement all the requirement froms API 
- * 
+ *  FILE STRUCTURE
+ *
+ *
  **/
 
-struct _so_file
-{
-    int _file_descriptor;
-    int _current_position;
-
-    unsigned char *_buffer;
-    int _buffer_current_size;
-    int _read_bytes; /* for increasing the buffer current size with appropriate values */
-    int _operation_history; /* for so  fflush */
-
-    int _error_flag; /* return somthing different from 0 if there was an error during the file operations */
-
+struct _so_file {
+	int _file_descriptor;
+    /* buffer for read */
+	unsigned char buffer_read[BUFFSIZE]; 
+    /* buffer for write */
+	unsigned char buffer_write[BUFFSIZE]; 
+     /* current index for read process in buffer */
+	int _current_index_read;
+     /* current limit for read process <= BUFFSIZE */
+	int _current_limit_read;
+    /* current index for write process */
+	int _current_index_write; 
+    /* if the file instance has read activated */
+	int _read_flag; 
+    /* if the current flag has write activated */
+	int _write_flag; 
+    /* a flag for activating the fflush command */
+	int _dirty_buffer_write; 
+    /* a flag for error activated if during the process something happend */
+	int _error_flag; 
+     /* for popen / pclose API functions */
+	int _child_process_id;
 };
 
-FUNC_DECL_PREFIX SO_FILE 
+/**
+ * Main API exposed function. Takes:
+ * @pathname: the path to the file that we want to process
+ * @mode: the allowed processing modes for the file
+ * 
+ * It uses open_mode(const char *mode) helper function 
+ * that returns an element from an enum like define 
+ **/ 
+FUNC_DECL_PREFIX SO_FILE
 *so_fopen(const char *pathname, const char *mode)
 {
-    int _file_descriptor = DEFAULT_FD_VALUE;
-    int opening_mode = open_mode(mode);
-   
+	int _file_descriptor = DEFAULT_FD_VALUE;
+	int opening_mode = open_mode(mode);
+	int _read_flag;
+	int _write_flag;
 
-    switch (opening_mode)
-    {
-        case READ_ONLY_MODE:
-            _file_descriptor = open(pathname, O_RDONLY, DEFAULT_ACCESS_RIGHTS);
-            break;
-        case READ_WRITE_MODE:
-            _file_descriptor = open(pathname, O_RDWR, DEFAULT_ACCESS_RIGHTS);
-            break;
-        case WRITE_CREATE_TRUNCATE_MODE:
-            _file_descriptor = open(pathname, O_WRONLY | O_CREAT | O_TRUNC, DEFAULT_ACCESS_RIGHTS);
-            break;
-        case READ_WRITE_CREATE_TRUNCATE_MODE:
-            _file_descriptor = open(pathname, O_RDWR | O_CREAT | O_TRUNC, DEFAULT_ACCESS_RIGHTS);
-            break;
-        case WRITE_ONLY_CREATE_APPEND_MODE:
-            _file_descriptor = open(pathname, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_ACCESS_RIGHTS);
-            break;
-        case READ_WRITE_CREATE_APPEND_MODE:
-            _file_descriptor = open(pathname, O_RDWR | O_CREAT | O_APPEND, DEFAULT_ACCESS_RIGHTS);
-            break;
-        default:
-            break;
-    }
+	switch (opening_mode) {
+	case READ_ONLY_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_RDONLY,
+				DEFAULT_ACCESS_RIGHTS
+			);
 
-    /* As specified in the hw description this should return null */
-    if (_file_descriptor == DEFAULT_FD_VALUE)
-    {
-        return NULL;
-    }
+		_read_flag = ENABLE;
+		_write_flag = DISABLE;
+		break;
+	case READ_WRITE_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_RDWR,
+				DEFAULT_ACCESS_RIGHTS
+			);
 
-    SO_FILE *new_file = (SO_FILE *) malloc (sizeof(SO_FILE));
-    if (new_file == NULL)
-    {
-        exit(BAD_ALLOC);
-    }
+		_read_flag = ENABLE;
+		_write_flag = ENABLE;
+		break;
+	case WRITE_CREATE_TRUNCATE_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_WRONLY |
+				O_CREAT |
+				O_TRUNC,
+				DEFAULT_ACCESS_RIGHTS
+			);
 
-    new_file -> _buffer = (unsigned char *) calloc (BUFFSIZE, sizeof(char));
-    if (new_file -> _buffer == NULL)
-    {
-        exit(BAD_ALLOC);
-    }
+		_read_flag = DISABLE;
+		_write_flag = ENABLE;
+		break;
+	case READ_WRITE_CREATE_TRUNCATE_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_RDWR |
+				O_CREAT |
+				O_TRUNC,
+				DEFAULT_ACCESS_RIGHTS
+			);
 
-    new_file -> _current_position = 0;
-    new_file -> _file_descriptor = _file_descriptor;
-    new_file -> _buffer_current_size = 0;
-    new_file -> _read_bytes = 0;
-    new_file -> _operation_history = NULL_OP;
-    new_file -> _error_flag = NO_ERROR;
+		_read_flag = ENABLE;
+		_write_flag = ENABLE;
+		break;
+	case WRITE_ONLY_CREATE_APPEND_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_WRONLY |
+				O_CREAT |
+				O_APPEND,
+				DEFAULT_ACCESS_RIGHTS
+			);
 
-    return new_file;
+		_read_flag = DISABLE;
+		_write_flag = ENABLE;
+		break;
+	case READ_WRITE_CREATE_APPEND_MODE:
+		_file_descriptor =
+			open(
+				pathname,
+				O_RDWR |
+				O_CREAT |
+				O_APPEND,
+				DEFAULT_ACCESS_RIGHTS
+			);
+
+		_read_flag = ENABLE;
+		_write_flag = DISABLE;
+		break;
+	default:
+		break;
+	}
+
+	/* As specified in the hw description this should return null */
+	if (_file_descriptor == DEFAULT_FD_VALUE) 
+		return NULL;
+	
+
+	SO_FILE *new_file = (SO_FILE *) malloc(sizeof(SO_FILE));
+	if (new_file == NULL) 
+		exit(BAD_ALLOC);
+	
+
+	new_file->_file_descriptor = _file_descriptor;
+	new_file->_current_index_read = BUFFSIZE;
+	new_file->_current_limit_read = BUFFSIZE - 1;
+	new_file->_current_index_write = 0;
+	new_file->_dirty_buffer_write = 0;
+	new_file->_error_flag = NO_ERROR;
+	new_file->_read_flag = _read_flag;
+	new_file->_write_flag = _write_flag;
+
+	return new_file;
 }
 
-/**
- *  One important aspect is that if the file 
- *  history's last operation was write one, 
- *  it must be called a fflush function, before closing it.
- * 
- **/ 
-FUNC_DECL_PREFIX 
+
+FUNC_DECL_PREFIX
 int so_fclose(SO_FILE *stream)
-{   
-    int closing_result;
-    int so_fflush_result;
+{
+	int closing_result;
+	int so_fflush_result;
 
-    so_fflush_result = so_fflush(stream);
-    if (so_fflush_result == SO_EOF)
-    {
-        return SO_EOF;
-    }
+	if (stream->_dirty_buffer_write == 1) {
+		so_fflush_result = so_fflush(stream);
 
-    closing_result = close (stream -> _file_descriptor);
-    if (closing_result < 0) 
-    {
-        perror(CLOSING_FILE);
-        exit(BAD_SYS_CALL);
-    }
+		if (so_fflush_result != SUCCESS) {
+			stream->_error_flag = WITH_ERROR;
+			free(stream);
+			return (SO_EOF);
+		}
+	}
 
-    if (closing_result == SUCCESS)
-    {
-        free(stream -> _buffer);
-        free(stream);
-        return closing_result;
-    }
+	closing_result = close(stream->_file_descriptor);
+	if (closing_result != SUCCESS) {
+		stream->_error_flag = WITH_ERROR;
+		free(stream);
+		return (SO_EOF);
+	}
 
-    return SO_EOF;
+	free(stream);
+
+	return SUCCESS;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_fileno(SO_FILE *stream)
 {
-    return stream -> _file_descriptor;
+	return stream->_file_descriptor;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_fflush(SO_FILE *stream)
 {
-    int write_result;
+	int write_op_result;
+	unsigned char *current_data_to_write = stream->buffer_write;
 
-    if (stream == NULL)
-    {   
-        stream -> _error_flag = WITH_ERROR;
-        return SO_EOF;
-    }
+	write_op_result = write(stream->_file_descriptor,
+				current_data_to_write,
+				stream -> _current_index_write);
 
-    /* If there were data wrote into the buffer of the file */
+	stream->_current_index_write = 0;
+	stream->_dirty_buffer_write = 0;
 
-    if (stream -> _current_position != 0)
-    {
-        if (stream -> _operation_history == WRITE_OP)
-        {
-            write_result = write(stream -> _file_descriptor,
-                                stream -> _buffer,
-                                stream  -> _current_position);
+	if (write_op_result < 0) 
+		return (SO_EOF);
+	
 
-            if (write_result > 0)
-            {
-                memset(stream -> _buffer, 0, BUFFSIZE);
-                stream -> _current_position = 0;
-                stream -> _buffer_current_size = BUFFSIZE;
-
-                return SUCCESS;
-            }                    
-        }   
-
-        if (stream  -> _operation_history == READ_OP)
-        {
-            /* should clear the whole buffer and then return EOF */
-            memset(stream -> _buffer, 0, BUFFSIZE);
-            stream -> _current_position = 0;
-            stream ->_buffer_current_size = BUFFSIZE;
-
-            return SUCCESS;
-
-        }
-
-    } 
-    else 
-    {
-        return SUCCESS;
-    }
-    
-    stream -> _error_flag = WITH_ERROR;
-    return SO_EOF;
+	return SUCCESS;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_fseek(SO_FILE *stream, long offset, int whence)
 {
-    return -1;
+	int lseek_op_result;
+
+	if (stream->_read_flag == ENABLE) {
+		stream->_current_index_read = BUFFSIZE;
+	}
+
+	if (stream->_write_flag == ENABLE &&
+	    stream->_current_index_write != 0) {
+		so_fflush(stream);
+		stream->_current_index_write = 0;
+	}
+
+	lseek_op_result = lseek(stream->_file_descriptor,
+				offset,
+				whence);
+	if (lseek_op_result < 0) {
+		stream->_error_flag = WITH_ERROR;
+		return lseek_op_result;
+	}
+
+	return SUCCESS;
+
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 long so_ftell(SO_FILE *stream)
 {
-    return 0;
+	int write_amount = 0;
+	int read_amount = 0;
+	int restart_position;
+
+	if (stream->_read_flag == ENABLE) {
+		read_amount = - stream->_current_limit_read - 1 +
+			      stream->_current_index_read;
+	}
+
+	if (stream->_write_flag == ENABLE) {
+		write_amount = stream->_current_index_write;
+	}
+
+	restart_position = lseek(stream->_file_descriptor, 0, SEEK_CUR) +
+			   read_amount +
+			   write_amount;
+
+
+	return restart_position;
 }
 
 FUNC_DECL_PREFIX
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-    int read_amount = size * nmemb;
-    int index = 0;
-    int read_char;
-    
-    for (index = 0; index < read_amount; ++index)
-    {
-        read_char = so_fgetc(stream);
+	size_t count = 0;
+	int current_char;
+	int index;
+	int total_amount = nmemb * size;
 
-        if (so_feof(stream) == 0)
-        {
-            *((char *)ptr + index) =  read_char; 
-        }
-        else
-        {
-            /* return how many did you read */
-            return index / size;
-        }
+	for (index = 0; index < total_amount; index++) {
+		current_char = so_fgetc(stream);
+		if (current_char == (SO_EOF)) {
+			return count / size;
+		} else {
+			*((unsigned char *) ptr + index) = (unsigned char) current_char;
+			count++;
+		}
 
-    }
-    
-   
+	}
 
-    return nmemb / size;
+	return count / size;
 }
 
 FUNC_DECL_PREFIX
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-    char *content = (char *) ptr;
-    int write_amount = nmemb * size;
-    int index = 0;
-    char write_status;
+	size_t count = 0;
+	int current_char;
+	int total_amount = nmemb * size;
+	int index;
 
-    while(index < write_amount)
-    {
-        write_status = so_fputc(*(content + index), stream);
-        if (write_status == SO_EOF && *(content + index) != SO_EOF)
-        {
-            continue;
-        }
+	for (index = 0; index < total_amount; index++) {
+		current_char = so_fputc((int) * ((unsigned char *) ptr + index), stream);
 
-        index++;
-    }   
-    
+		if (current_char == (SO_EOF)) {
+			return count / size;
+		}
 
-    return nmemb / size;
+		count++;
+	}
+
+	return count / size;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_fgetc(SO_FILE *stream)
 {
-    int read_result;
-    int return_char;
+	int return_char;
+	int read_op_value;
 
-    stream -> _operation_history = READ_OP;
+	if (stream -> _current_index_read > stream->_current_limit_read) {
+		read_op_value = read(stream->_file_descriptor,
+				     stream->buffer_read,
+				     BUFFSIZE);
 
-    if ((stream -> _current_position == 0 && 
-         stream -> _buffer[stream -> _current_position] == '\0') ||
-         stream -> _current_position == stream -> _buffer_current_size)
+		stream->_current_index_read = 0;
+		stream->_current_limit_read = read_op_value - 1;
 
-    {
-        read_result = read(stream -> _file_descriptor, 
-                       stream -> _buffer, 
-                       BUFFSIZE);
+		if (read_op_value == 0) {
+			stream->_error_flag = WITH_ERROR;
+			return (SO_EOF);
+		}
 
-        if (read_result > 0)
-        {   
-            if (stream -> _current_position == stream -> _buffer_current_size)
-            {
-                stream -> _read_bytes += read_result;
-            }
+		if (read_op_value == -1) {
+			stream->_error_flag = (SO_EOF);
+			return (SO_EOF);
+		}
+	}
 
-            stream -> _buffer_current_size = read_result;
-            stream -> _current_position = 0;
-        } 
-        else
-        {
-            stream -> _error_flag = WITH_ERROR;
-            return SO_EOF;
-        }
-    }
+	return_char = (int) stream->buffer_read[stream->_current_index_read];
+	stream->_current_index_read++;
+	return (unsigned char) return_char;
 
-     /* 
-      Extend the char from the buffer, 
-      from the strem -> _current_position to an int 
-     */
-
-    return_char = (int) stream -> _buffer[stream -> _current_position];
-    stream -> _current_position++;
-
-    return return_char;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_fputc(int c, SO_FILE *stream)
 {
-    stream -> _operation_history = WRITE_OP;
+	int write_counter;
+	int write_op_value;
+	unsigned char *write_data;
 
-    if (stream != NULL)
-    {
-        if (stream -> _current_position >= stream -> _buffer_current_size)
-        {
-            stream -> _read_bytes += stream -> _buffer_current_size;
-            if (so_fflush(stream) == SO_EOF)
-            {
-                return SO_EOF;
-            }
-        }
-        stream -> _buffer[stream -> _current_position] = c;
-        stream -> _current_position++;
-        return c;
-    }
+	stream->_dirty_buffer_write = 1;
+	stream->buffer_write[stream->_current_index_write] = (unsigned char)c;
+	stream->_current_index_write++;
 
-    stream -> _error_flag = WITH_ERROR;
-    return SO_EOF;
+	if (stream -> _current_index_write == BUFFSIZE) {
+		write_counter = 0;
+		while (write_counter < stream->_current_index_write) {
+			write_data = stream->buffer_write + write_counter;
+			write_op_value = write(stream->_file_descriptor,
+					       write_data,
+					       BUFFSIZE);
+			if (write_op_value == 0) {
+				stream->_error_flag = WITH_ERROR;
+				return (SO_EOF);
+			}
+
+			if (write_op_value == -1) {
+				stream->_error_flag = WITH_ERROR;
+				return (SO_EOF);
+			}
+
+			write_counter += write_op_value;
+
+		}
+
+		stream->_current_index_write = 0;
+		stream->_dirty_buffer_write = 0;
+	}
+
+	return c;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_feof(SO_FILE *stream)
 {
-    return stream -> _error_flag;
+	if (stream->_current_limit_read == -1) {
+		return -1;
+	}
+
+	return 0;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_ferror(SO_FILE *stream)
 {
-    return stream -> _error_flag;
+	return stream->_error_flag;
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 SO_FILE *so_popen(const char *command, const char *type)
 {
-    return NULL;
+	int _file_descriptor_read;
+	int _file_descriptor_write;
+	int pid = DEFAULT_FD_VALUE;
+
+	int _file_descriptors_tuple[2];
+
+	pipe(_file_descriptors_tuple);
+
+	_file_descriptor_read = _file_descriptors_tuple[0];
+	_file_descriptor_write = _file_descriptors_tuple[1];
+
+	pid = fork();
+
+	switch (pid) {
+	case -1: {
+		return NULL;
+	}
+	case 0: {
+		if (strcmp(type, "r") == 0) {
+			if (_file_descriptor_write != STDOUT_FILENO) {
+				dup2(_file_descriptor_write, STDOUT_FILENO);
+				close(_file_descriptor_write);
+				_file_descriptor_write = STDOUT_FILENO;
+			}
+
+			close(_file_descriptor_read);
+
+		} else if (strcmp(type, "w") == 0) {
+			if (_file_descriptor_read != STDIN_FILENO) {
+				dup2(_file_descriptor_read, STDIN_FILENO);
+				close(_file_descriptor_read);
+			}
+
+			close(_file_descriptor_write);
+		}
+
+		execlp("/bin/sh", "sh", "-c", command, NULL);
+		return NULL;
+	}
+	default: {
+		SO_FILE *file = (SO_FILE *) malloc(sizeof(SO_FILE));
+		if (file == NULL) {
+			exit(BAD_ALLOC);
+		}
+
+		if (strcmp(type, "r") == 0) {
+			close(_file_descriptor_write);
+			file->_file_descriptor = _file_descriptor_read;
+			file->_read_flag = ENABLE;
+			file->_write_flag = DISABLE;
+		} else if (strcmp(type, "w") == 0) {
+			close(_file_descriptor_read);
+			file->_file_descriptor = _file_descriptor_write;
+			file->_read_flag = DISABLE;
+			file->_write_flag = ENABLE;
+		}
+
+		file->_current_index_read = BUFFSIZE;
+		file->_current_limit_read = BUFFSIZE - 1;
+		file->_current_index_write = 0;
+		file->_dirty_buffer_write = 0;
+		file->_error_flag = NO_ERROR;
+		file->_child_process_id = pid;
+
+		return file;
+	}
+
+	}
+
 }
 
-FUNC_DECL_PREFIX 
+FUNC_DECL_PREFIX
 int so_pclose(SO_FILE *stream)
 {
-    return 0;
+	int pid_waiting_process_result = -1;
+	int waiting_status = -1;
+	int child_process_id = stream->_child_process_id;
+
+	so_fclose(stream);
+
+	pid_waiting_process_result = waitpid(child_process_id, &waiting_status, 0);
+
+	if (pid_waiting_process_result == -1) {
+		return -1;
+	}
+
+	return waiting_status;
 }
