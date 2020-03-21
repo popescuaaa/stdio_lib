@@ -1,40 +1,44 @@
-==20303== Memcheck, a memory error detector
-==20303== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
-==20303== Using Valgrind-3.15.0.GIT and LibVEX; rerun with -h for copyright info
-==20303== Command: _test/bin/test_fgetc ./_test/work/test_2
-==20303== Parent PID: 20298
-==20303== 
-==20303== 
-==20303== Process terminating with default action of signal 2 (SIGINT)
-==20303==    at 0x5353C8C: open (open64.c:47)
-==20303==    by 0x52D0589: _IO_file_open (fileops.c:189)
-==20303==    by 0x52D0589: _IO_file_fopen@@GLIBC_2.2.5 (fileops.c:281)
-==20303==    by 0x52C2EA9: __fopen_internal (iofopen.c:78)
-==20303==    by 0x52C2EA9: fopen@@GLIBC_2.2.5 (iofopen.c:89)
-==20303==    by 0x10930A: get_page_prot (hooks.c:22)
-==20303==    by 0x109877: try_hook_rela (hooks.c:166)
-==20303==    by 0x109C74: install_hooks (hooks.c:295)
-==20303==    by 0x109005: main (test_fgetc.c:45)
-==20303== 
-==20303== HEAP SUMMARY:
-==20303==     in use at exit: 552 bytes in 1 blocks
-==20303==   total heap usage: 2 allocs, 1 frees, 608 bytes allocated
-==20303== 
-==20303== 552 bytes in 1 blocks are still reachable in loss record 1 of 1
-==20303==    at 0x4C2FDFB: malloc (vg_replace_malloc.c:309)
-==20303==    by 0x52C2E49: __fopen_internal (iofopen.c:65)
-==20303==    by 0x52C2E49: fopen@@GLIBC_2.2.5 (iofopen.c:89)
-==20303==    by 0x10930A: get_page_prot (hooks.c:22)
-==20303==    by 0x109877: try_hook_rela (hooks.c:166)
-==20303==    by 0x109C74: install_hooks (hooks.c:295)
-==20303==    by 0x109005: main (test_fgetc.c:45)
-==20303== 
-==20303== LEAK SUMMARY:
-==20303==    definitely lost: 0 bytes in 0 blocks
-==20303==    indirectly lost: 0 bytes in 0 blocks
-==20303==      possibly lost: 0 bytes in 0 blocks
-==20303==    still reachable: 552 bytes in 1 blocks
-==20303==         suppressed: 0 bytes in 0 blocks
-==20303== 
-==20303== For lists of detected and suppressed errors, rerun with: -s
-==20303== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==2067== Memcheck, a memory error detector
+==2067== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==2067== Using Valgrind-3.15.0.GIT and LibVEX; rerun with -h for copyright info
+==2067== Command: _test/bin/test_fgetc_large ./_test/work/test_3
+==2067== Parent PID: 2062
+==2067== 
+==2067== 
+==2067== Process terminating with default action of signal 2 (SIGINT)
+==2067==    at 0x5353C8C: open (open64.c:47)
+==2067==    by 0x52D0589: _IO_file_open (fileops.c:189)
+==2067==    by 0x52D0589: _IO_file_fopen@@GLIBC_2.2.5 (fileops.c:281)
+==2067==    by 0x52C2EA9: __fopen_internal (iofopen.c:78)
+==2067==    by 0x52C2EA9: fopen@@GLIBC_2.2.5 (iofopen.c:89)
+==2067==    by 0x10930F: get_page_prot (hooks.c:22)
+==2067==    by 0x10987C: try_hook_rela (hooks.c:166)
+==2067==    by 0x109C79: install_hooks (hooks.c:295)
+==2067==    by 0x109049: main (test_fgetc_large.c:50)
+==2067== 
+==2067== HEAP SUMMARY:
+==2067==     in use at exit: 16,552 bytes in 2 blocks
+==2067==   total heap usage: 3 allocs, 1 frees, 16,608 bytes allocated
+==2067== 
+==2067== 552 bytes in 1 blocks are still reachable in loss record 1 of 2
+==2067==    at 0x4C2FDFB: malloc (vg_replace_malloc.c:309)
+==2067==    by 0x52C2E49: __fopen_internal (iofopen.c:65)
+==2067==    by 0x52C2E49: fopen@@GLIBC_2.2.5 (iofopen.c:89)
+==2067==    by 0x10930F: get_page_prot (hooks.c:22)
+==2067==    by 0x10987C: try_hook_rela (hooks.c:166)
+==2067==    by 0x109C79: install_hooks (hooks.c:295)
+==2067==    by 0x109049: main (test_fgetc_large.c:50)
+==2067== 
+==2067== 16,000 bytes in 1 blocks are still reachable in loss record 2 of 2
+==2067==    at 0x4C2FDFB: malloc (vg_replace_malloc.c:309)
+==2067==    by 0x108FFD: main (test_fgetc_large.c:47)
+==2067== 
+==2067== LEAK SUMMARY:
+==2067==    definitely lost: 0 bytes in 0 blocks
+==2067==    indirectly lost: 0 bytes in 0 blocks
+==2067==      possibly lost: 0 bytes in 0 blocks
+==2067==    still reachable: 16,552 bytes in 2 blocks
+==2067==         suppressed: 0 bytes in 0 blocks
+==2067== 
+==2067== For lists of detected and suppressed errors, rerun with: -s
+==2067== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
