@@ -7,7 +7,7 @@
 /****************** File opening modes ********************/
 
 #define READ_ONLY_MODE                          1
-#define READ_WRITE_MODE                         2  
+#define READ_WRITE_MODE                         2
 #define WRITE_CREATE_TRUNCATE_MODE              3  /* if the file exists basically we rewrite the acces rights */
 #define READ_WRITE_CREATE_TRUNCATE_MODE         4
 #define WRITE_ONLY_CREATE_APPEND_MODE           5
@@ -41,7 +41,7 @@
 
 /******************** Error flags **********************/
 #define NO_ERROR                                0
-#define WITH_ERROR                              -1
+#define WITH_ERROR                              (-1)
 
 #define ENABLE                                  1
 #define DISABLE                                 0

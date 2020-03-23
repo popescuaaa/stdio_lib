@@ -9,7 +9,7 @@ build:  libso_stdio.so
 libso_stdio.so: so_stdio.o
 	$(CC) -shared -o $@ $^
 
-so_stdio.o: so_stdio.c so_stdio.h
+so_stdio.o: so_stdio.c so_stdio.h utility.h constant_values.h
 
 clean:
 	rm -f so_stdio.o libso_stdio.so
