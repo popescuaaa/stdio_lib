@@ -9,17 +9,12 @@
 #include "constant_values.h"
 #include "utility.h"
 
-/**
-	FILE STRUCTURE
-
-
- **/
-
+/** FILE STRUCTURE **/
 struct _so_file {
 	int _file_descriptor;
-	/* buffer for read */
+	/* buffer for read 	*/
 	unsigned char buffer_read[BUFFSIZE];
-	/* buffer for write */
+	/* buffer for write  */
 	unsigned char buffer_write[BUFFSIZE];
 	/* current index for read process in buffer */
 	int _current_index_read;
@@ -29,31 +24,30 @@ struct _so_file {
 	int _current_index_write;
 	/* The next "flag-like" variables will be used to */
 	/* 	to know wheather is has been used one buffer, */
-	/*  or another, or even both of them. 			  */
-	/*  Mostly for ftell.							  */
+	/*  or another, or even both of them. */
+	/*  Mostly for ftell. */
 	/* if the file instance has read activated */
 	int _read_flag;
 	/* if the current flag has write activated */
 	int _write_flag;
 	/* a flag for activating the fflush command */
-	/* Basically on the Intel architecture the "dirty" name is used */
-	/* to specify that a specific location in memory has been touched, */
+	/* Basically on the Intel architecture the */
+	/* "dirty" name is used to specify that a specific */
+	/* location in memory has been touched, */
 	/* used or corruped, or for caching activities. */
 	int _dirty_buffer_write;
-	/* a flag for error activated if during the process something happend */
+	/* a flag for error activated if during */
+	/* the process something happend */
 	int _error_flag;
 	/* for popen / pclose API functions */
 	int _child_process_id;
 };
 
-/**
+/*  @pathname: the path to the file that we want to process */
+/*  @mode: the allowed processing modes for the file */
+/*  It uses open_mode(const char *mode) helper function */
+/*  that returns an element from an enum like define */
 
-    @pathname: the path to the file that we want to process
-    @mode: the allowed processing modes for the file
-
-	It uses open_mode(const char *mode) helper function
-	that returns an element from an enum like define
- **/
 FUNC_DECL_PREFIX SO_FILE
 *so_fopen(const char *pathname, const char *mode)
 {
@@ -147,7 +141,7 @@ FUNC_DECL_PREFIX SO_FILE
 
 
 	SO_FILE *new_file = (SO_FILE *) malloc(sizeof(SO_FILE));
-	
+
 	if (new_file == NULL)
 		exit(BAD_ALLOC);
 
@@ -164,13 +158,11 @@ FUNC_DECL_PREFIX SO_FILE
 	return new_file;
 }
 
-/**
-	@stream: pointer to the so_file entity that has to be closed
-	@return { SUCCESS: 0, SO_EOF: (-1) }
-	Important Note: due to the flag for the dirty write (basic access)
-	we can call the fflush by checking the value.
+/*  @stream: pointer to the so_file entity that has to be closed */
+/*	@return { SUCCESS: 0, SO_EOF: (-1) } */
+/*  Important Note: due to the flag for the dirty write (basic access) */
+/*  we can call the fflush by checking the value. */
 
- **/
 FUNC_DECL_PREFIX
 int so_fclose(SO_FILE *stream)
 {
@@ -196,24 +188,22 @@ int so_fclose(SO_FILE *stream)
 	free(stream);
 	return SUCCESS;
 }
-/**
-	@stream: pointer to the so_file entity for interogation
-	@return the file descriptor that the OS gave to the enitity
+/*  @stream: pointer to the so_file entity for interogation */
+/*  @return the file descriptor that the OS gave to the enitity */
 
- **/
 FUNC_DECL_PREFIX
 int so_fileno(SO_FILE *stream)
 {
 	return stream->_file_descriptor;
 }
 
-/**
-	@stream: pointer to the so_file entity that will be flushed
-	@return { SUCCESS: 0, SO_EOF: (-1) }
-	Here is used the write buffer and the index that currently points
-	to the least used char
+/*  @stream: pointer to the so_file entity */
+/*  that will be flushed */
+/*	@return { SUCCESS: 0, SO_EOF: (-1) } */
+/*	Here is used the write buffer and the index */
+/*  that currently points */
+/*	to the least used char */
 
- **/
 FUNC_DECL_PREFIX
 int so_fflush(SO_FILE *stream)
 {
@@ -235,22 +225,19 @@ int so_fflush(SO_FILE *stream)
 	return SUCCESS;
 }
 
-/**
-	@stream: pointer to the so_file entity for cursor change
-	@offset: the value added at the end to the whence specifier
-	@whence: basically one the following
-		{ SEEK_SET SEEK_CUR SEEK_END }
-	@return { SUCCESS: 0, negative value => for error during lseek }
+/* @stream: pointer to the so_file entity for cursor change */
+/* @offset: the value added at the end to the whence specifier */
+/* @whence: basically one the following */
+/*		{ SEEK_SET SEEK_CUR SEEK_END } */
+/*	@return { SUCCESS: 0, negative value => for error during lseek } */
 
- **/
 FUNC_DECL_PREFIX
 int so_fseek(SO_FILE *stream, long offset, int whence)
 {
 	int lseek_op_result;
 
-	if (stream->_read_flag == ENABLE) {
+	if (stream->_read_flag == ENABLE)
 		stream->_current_index_read = BUFFSIZE;
-	}
 
 	if (stream->_write_flag == ENABLE &&
 	    stream->_current_index_write != 0) {
@@ -269,12 +256,10 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 	return SUCCESS;
 
 }
-/**
-	@stream: pointer to the so_file entity for interogation
-	@return  current position in the file according to the
-		read and write buffer sizes and current indexes
+/* @stream: pointer to the so_file entity for interogation */
+/* @return  current position in the file according to the */
+/* read and write buffer sizes and current indexes */
 
- **/
 FUNC_DECL_PREFIX
 long so_ftell(SO_FILE *stream)
 {
@@ -287,9 +272,8 @@ long so_ftell(SO_FILE *stream)
 			      stream->_current_index_read;
 	}
 
-	if (stream->_write_flag == ENABLE) {
+	if (stream->_write_flag == ENABLE) 
 		write_amount = stream->_current_index_write;
-	}
 
 	restart_position = lseek(stream->_file_descriptor, 0, SEEK_CUR) +
 			   read_amount +
@@ -298,13 +282,11 @@ long so_ftell(SO_FILE *stream)
 	return restart_position;
 }
 
-/**
-	@ptr: the pointer where the read chars will be kept -> store concept
-	@size: the size of an element that will be read
-	@nmemb: how many elements will be read
-	@stream: pointer to the so_file entity for reding process
+/* @ptr: the pointer where the read chars will be kept */
+/* @size: the size of an element that will be read */
+/* @nmemb: how many elements will be read */
+/* @stream: pointer to the so_file entity for reding process */
 
- **/
 FUNC_DECL_PREFIX
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
@@ -315,25 +297,21 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 
 	for (index = 0; index < total_amount; index++) {
 		current_char = so_fgetc(stream);
-		if (current_char == SO_EOF) {
+		if (current_char == SO_EOF) 
 			return count / size;
-		} else {
-			*((unsigned char *) ptr + index) = (unsigned char) current_char;
-			count++;
-		}
-
+		
+		*((unsigned char *) ptr + index) = (unsigned char) current_char;
+		count++;
 	}
 
 	return count / size;
 }
 
-/**
-	@ptr: the pointer where the data for write is stored
-	@size: the size of an element that will be written
-	@nmemb: how many elements will be written
-	@stream: pointer to the so_file entity for writing process
+/* @ptr: the pointer where the data for write is stored */
+/* @size: the size of an element that will be written */
+/* @nmemb: how many elements will be written */
+/* @stream: pointer to the so_file entity for writing process */
 
- **/
 FUNC_DECL_PREFIX
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
@@ -345,9 +323,8 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	for (index = 0; index < total_amount; index++) {
 		current_char = so_fputc((int)*((unsigned char *) ptr+index), stream);
 
-		if (current_char == SO_EOF) {
+		if (current_char == SO_EOF)
 			return count / size;
-		}
 
 		count++;
 	}
@@ -355,13 +332,12 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	return count / size;
 }
 
-/**
-	@stream: pointer to the so_file entity for char prelevation process
-	This function will be used during the read process, and for
-	performance reasons the buffer_read memory location will be populated
-	as much as we can and then the function return the current_char
+/* @stream: pointer to the so_file entity */
+/* for char prelevation process */
+/* This function will be used during the read process, and for */
+/* performance reasons the buffer_read memory location will be populated */
+/* as much as we can and then the function return the current_char */
 
- **/
 FUNC_DECL_PREFIX
 int so_fgetc(SO_FILE *stream)
 {
@@ -393,13 +369,11 @@ int so_fgetc(SO_FILE *stream)
 
 }
 
-/**
-	@stream: pointer to the so_file entity for char writing process
-	@c: unsigned char extended to int for writing process
-	The actual data is not written to the file in every system call,
-	only for performance reasons, and is kept in a write buffer.
-
- **/
+/* @stream: pointer to the so_file entity for char writing process */
+/* @c: unsigned char extended to int for writing process */
+/* The actual data is not written to the file in every system call, */
+/* only for performance reasons, and is kept in a write buffer. */
+ 
 FUNC_DECL_PREFIX
 int so_fputc(int c, SO_FILE *stream)
 {
@@ -439,37 +413,29 @@ int so_fputc(int c, SO_FILE *stream)
 	return c;
 }
 
-/**
-	@stream: pointer to the so_file entity for interogation
-
- **/
+/* @stream: pointer to the so_file entity for interogation */
 FUNC_DECL_PREFIX
 int so_feof(SO_FILE *stream)
 {
-	if (stream->_current_limit_read == -1) {
+	if (stream->_current_limit_read == -1)
 		return -1;
-	}
 
 	return 0;
 }
 
-/**
-	@stream: pointer to the so_file entity for interogation
-
- **/
+/* @stream: pointer to the so_file entity for interogation */
 FUNC_DECL_PREFIX
 int so_ferror(SO_FILE *stream)
 {
 	return stream->_error_flag;
 }
 
-/**
-	@command: unix like command for execution
-	@type: the relation between the std input / output
-		and current subprocesses communication
-	Note: the function map the actual implementation
-		of the popen function from stdio.h
- **/
+/* @command: unix like command for execution */
+/* @type: the relation between the std input / output */
+/*	      and current subprocesses communication */
+/* Note: the function map the actual implementation */
+/*	of the popen function from stdio.h */
+
 FUNC_DECL_PREFIX
 SO_FILE *so_popen(const char *command, const char *type)
 {
@@ -514,6 +480,7 @@ SO_FILE *so_popen(const char *command, const char *type)
 	}
 	default: {
 		SO_FILE *file = (SO_FILE *) malloc(sizeof(SO_FILE));
+
 		if (file == NULL) {
 			exit(BAD_ALLOC);
 		}
@@ -544,10 +511,7 @@ SO_FILE *so_popen(const char *command, const char *type)
 
 }
 
-/**
-	@stream: pointer to the so_file entity for closing
-
- **/
+/* @stream: pointer to the so_file entity for closing */
 FUNC_DECL_PREFIX
 int so_pclose(SO_FILE *stream)
 {
