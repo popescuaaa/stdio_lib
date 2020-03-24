@@ -32,8 +32,6 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 
 	SO_FILE *rt_so_file = (SO_FILE *) malloc(sizeof(SO_FILE));
 
-
-
 	rt_so_file->buffer_index_read = DEFAULT_BUF_SIZE;
 	rt_so_file->buffer_limit_read = DEFAULT_BUF_SIZE - 1;
 	rt_so_file->buffer_index_write = 0;
@@ -343,7 +341,7 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 		stream->buffer_index_read = DEFAULT_BUF_SIZE;
 
 	if (stream->write_enable && stream->buffer_index_write != 0) {
-		so_fflush(stream);
+		so_fflush(stream);stream
 		stream->buffer_index_write = 0;
 	}
 

@@ -9,7 +9,7 @@ so_stdio.lib: so_stdio.dll
 so_stdio.dll: so_stdio.obj
 	$(L) /nologo /dll /out:$@ /implib:so_stdio.lib $**
 
-so_stdio.obj: so_stdio.c
+so_stdio.obj: so_stdio.c 
 	$(CC) $(CFLAGS) /c $**
 
 clean:
