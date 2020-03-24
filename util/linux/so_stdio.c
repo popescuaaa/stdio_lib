@@ -77,7 +77,6 @@ FUNC_DECL_PREFIX SO_FILE
 				O_TRUNC,
 				DEFAULT_ACCESS_RIGHTS
 			);
-
 		_read_flag = ENABLE;
 		_write_flag = ENABLE;
 		break;
@@ -90,7 +89,6 @@ FUNC_DECL_PREFIX SO_FILE
 				O_APPEND,
 				DEFAULT_ACCESS_RIGHTS
 			);
-
 		_read_flag = DISABLE;
 		_write_flag = ENABLE;
 		break;
@@ -103,7 +101,6 @@ FUNC_DECL_PREFIX SO_FILE
 				O_APPEND,
 				DEFAULT_ACCESS_RIGHTS
 			);
-
 		_read_flag = ENABLE;
 		_write_flag = DISABLE;
 		break;
@@ -115,12 +112,10 @@ FUNC_DECL_PREFIX SO_FILE
 	if (_file_descriptor == DEFAULT_FD_VALUE)
 		return NULL;
 
-
 	SO_FILE *new_file = (SO_FILE *) malloc(sizeof(SO_FILE));
 
 	if (new_file == NULL)
 		exit(BAD_ALLOC);
-
 
 	new_file->_file_descriptor = _file_descriptor;
 	new_file->_current_index_read = BUFFSIZE;
@@ -148,14 +143,12 @@ int so_fclose(SO_FILE *stream)
 			return SO_EOF;
 		}
 	}
-
 	closing_result = close(stream->_file_descriptor);
 	if (closing_result != SUCCESS) {
 		stream->_error_flag = WITH_ERROR;
 		free(stream);
 		return SO_EOF;
 	}
-
 	free(stream);
 	return SUCCESS;
 }
@@ -165,7 +158,6 @@ int so_fileno(SO_FILE *stream)
 {
 	return stream->_file_descriptor;
 }
-
 
 FUNC_DECL_PREFIX
 int so_fflush(SO_FILE *stream)
@@ -179,10 +171,8 @@ int so_fflush(SO_FILE *stream)
 	/* Reinitialize  dirty flag and current index */
 	stream->_current_index_write = 0;
 	stream->_dirty_buffer_write = 0;
-
 	if (write_op_result < 0)
 		return SO_EOF;
-
 	return SUCCESS;
 }
 
@@ -217,13 +207,13 @@ long so_ftell(SO_FILE *stream)
 	int restart_position;
 
 	if (stream->_read_flag == ENABLE) {
-		read_amount = -stream->_current_limit_read - 1 +
+		read_amount = stream->_current_limit_read + 1 -
 			      stream->_current_index_read;
 	}
 	if (stream->_write_flag == ENABLE)
 		write_amount = stream->_current_index_write;
 
-	restart_position = lseek(stream->_file_descriptor, 0, SEEK_CUR) +
+	restart_position = lseek(stream->_file_descriptor, 0, SEEK_CUR) -
 			   read_amount +
 			   write_amount;
 	return restart_position;
@@ -241,11 +231,9 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 		current_char = so_fgetc(stream);
 		if (current_char == SO_EOF)
 			return count / size;
-
 		*((unsigned char *) ptr + index) = (unsigned char) current_char;
 		count++;
 	}
-
 	return count / size;
 }
 
@@ -258,8 +246,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	int index;
 
 	for (index = 0; index < total_amount; index++) {
-		current_char = so_fputc((int) * ((unsigned char *) ptr + index), stream);
-
+		current_char = so_fputc(*((unsigned char *)ptr + index), stream);
 		if (current_char == SO_EOF)
 			return count / size;
 		count++;
@@ -333,7 +320,6 @@ int so_feof(SO_FILE *stream)
 {
 	if (stream->_current_limit_read == -1)
 		return -1;
-
 	return 0;
 }
 
@@ -349,16 +335,12 @@ SO_FILE *so_popen(const char *command, const char *type)
 	int _file_descriptor_read;
 	int _file_descriptor_write;
 	int pid = DEFAULT_FD_VALUE;
-
 	int _file_descriptors_tuple[2];
 
 	pipe(_file_descriptors_tuple);
-
 	_file_descriptor_read = _file_descriptors_tuple[0];
 	_file_descriptor_write = _file_descriptors_tuple[1];
-
 	pid = fork();
-
 	switch (pid) {
 	case -1: {
 		return NULL;
@@ -391,7 +373,6 @@ SO_FILE *so_popen(const char *command, const char *type)
 		if (file == NULL) {
 			exit(BAD_ALLOC);
 		}
-
 		if (strcmp(type, "r") == 0) {
 			close(_file_descriptor_write);
 			file->_file_descriptor = _file_descriptor_read;
@@ -403,14 +384,12 @@ SO_FILE *so_popen(const char *command, const char *type)
 			file->_read_flag = DISABLE;
 			file->_write_flag = ENABLE;
 		}
-
 		file->_current_index_read = BUFFSIZE;
 		file->_current_limit_read = BUFFSIZE - 1;
 		file->_current_index_write = 0;
 		file->_dirty_buffer_write = 0;
 		file->_error_flag = NO_ERROR;
 		file->_child_process_id = pid;
-
 		return file;
 	}
 
@@ -426,12 +405,9 @@ int so_pclose(SO_FILE *stream)
 	int child_process_id = stream->_child_process_id;
 
 	so_fclose(stream);
-
 	pid_waiting_process_result = waitpid(child_process_id, &waiting_status, 0);
-
 	if (pid_waiting_process_result == -1) {
 		return -1;
 	}
-
 	return waiting_status;
 }
