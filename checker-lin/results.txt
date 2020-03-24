@@ -1,14 +1,6 @@
-../util/linux/so_stdio.c:201: WARNING:BRACES: braces {} are not necessary for single statement blocks
-../util/linux/utility.h:10: WARNING:LEADING_SPACE: please, no spaces at the start of a line
-../util/linux/so_stdio.c:125: WARNING:LINE_SPACING: Missing a blank line after declarations
-../util/linux/so_stdio.c:260: WARNING:LONG_LINE: line over 80 characters
-../util/linux/constant_values.h:11: WARNING:LONG_LINE_COMMENT: line over 80 characters
+../util/linux/so_stdio.c:409: WARNING:BRACES: braces {} are not necessary for single statement blocks
+../util/linux/so_stdio.c:268: WARNING:LONG_LINE: line over 80 characters
 ../util/linux/constant_values.h:49: WARNING:MISSING_EOF_NEWLINE: adding a line without newline at end of file
-../util/linux/so_stdio.c:154: ERROR:RETURN_PARENTHESES: return is not a function, parentheses are not required
-../util/linux/so_stdio.c:184: ERROR:SPACING: spaces prohibited around that '->' (ctx:WxW)
-../util/linux/utility.h:10: ERROR:TRAILING_STATEMENTS: trailing statements should be on next line
-../util/linux/so_stdio.c:120: ERROR:TRAILING_WHITESPACE: trailing whitespace
-../util/linux/so_stdio.c:259: WARNING:UNNECESSARY_ELSE: else is not generally useful after a break or return
+../util/linux/so_stdio.c:268: ERROR:SPACING: space prohibited after that '*' (ctx:WxW)
 00) Sources check...........................................failed  [ 0/95]
 01) Test fopen arguments....................................passed  [02/95]
-02) Test fgetc..............................................passed  [02/95]
