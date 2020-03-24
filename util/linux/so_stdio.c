@@ -12,8 +12,8 @@
 /** FILE STRUCTURE **/
 struct _so_file {
 	int _file_descriptor;
-	unsigned char buffer_read[BUFFSIZE];
-	unsigned char buffer_write[BUFFSIZE];
+	unsigned char _buffer_read[BUFFSIZE];
+	unsigned char _buffer_write[BUFFSIZE];
 	int _current_index_read;
 	int _current_limit_read;
 	int _current_index_write;
@@ -171,14 +171,12 @@ FUNC_DECL_PREFIX
 int so_fflush(SO_FILE *stream)
 {
 	int write_op_result;
-	unsigned char *current_data_to_write = stream->buffer_write;
+	unsigned char *current_data_to_write = stream->_buffer_write;
 
 	write_op_result = write(stream->_file_descriptor,
 				current_data_to_write,
 				stream->_current_index_write);
-
 	/* Reinitialize  dirty flag and current index */
-
 	stream->_current_index_write = 0;
 	stream->_dirty_buffer_write = 0;
 
@@ -201,7 +199,6 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 		so_fflush(stream);
 		stream->_current_index_write = 0;
 	}
-
 	lseek_op_result = lseek(stream->_file_descriptor,
 				offset,
 				whence);
@@ -209,9 +206,7 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 		stream->_error_flag = WITH_ERROR;
 		return lseek_op_result;
 	}
-
 	return SUCCESS;
-
 }
 
 FUNC_DECL_PREFIX
@@ -225,14 +220,12 @@ long so_ftell(SO_FILE *stream)
 		read_amount = -stream->_current_limit_read - 1 +
 			      stream->_current_index_read;
 	}
-
 	if (stream->_write_flag == ENABLE)
 		write_amount = stream->_current_index_write;
 
 	restart_position = lseek(stream->_file_descriptor, 0, SEEK_CUR) +
 			   read_amount +
 			   write_amount;
-
 	return restart_position;
 }
 
@@ -269,10 +262,8 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 
 		if (current_char == SO_EOF)
 			return count / size;
-
 		count++;
 	}
-
 	return count / size;
 }
 
@@ -284,27 +275,22 @@ int so_fgetc(SO_FILE *stream)
 
 	if (stream->_current_index_read > stream->_current_limit_read) {
 		read_op_value = read(stream->_file_descriptor,
-				     stream->buffer_read,
+				     stream->_buffer_read,
 				     BUFFSIZE);
-
 		stream->_current_index_read = 0;
 		stream->_current_limit_read = read_op_value - 1;
-
 		if (read_op_value == 0) {
 			stream->_error_flag = WITH_ERROR;
 			return SO_EOF;
 		}
-
 		if (read_op_value == -1) {
 			stream->_error_flag = WITH_ERROR;
 			return SO_EOF;
 		}
 	}
-
-	return_char = (int) stream->buffer_read[stream->_current_index_read];
+	return_char = (int) stream->_buffer_read[stream->_current_index_read];
 	stream->_current_index_read++;
 	return (unsigned char) return_char;
-
 }
 
 FUNC_DECL_PREFIX
@@ -316,13 +302,13 @@ int so_fputc(int c, SO_FILE *stream)
 
 	/* mark the dirty flag as active */
 	stream->_dirty_buffer_write = 1;
-	stream->buffer_write[stream->_current_index_write] = (unsigned char)c;
+	stream->_buffer_write[stream->_current_index_write] = (unsigned char)c;
 	stream->_current_index_write++;
 
 	if (stream->_current_index_write == BUFFSIZE) {
 		write_counter = 0;
 		while (write_counter < stream->_current_index_write) {
-			write_data = stream->buffer_write + write_counter;
+			write_data = stream->_buffer_write + write_counter;
 			write_op_value = write(stream->_file_descriptor,
 					       write_data,
 					       BUFFSIZE);
@@ -330,19 +316,15 @@ int so_fputc(int c, SO_FILE *stream)
 				stream->_error_flag = WITH_ERROR;
 				return SO_EOF;
 			}
-
 			if (write_op_value == -1) {
 				stream->_error_flag = WITH_ERROR;
 				return SO_EOF;
 			}
-
 			write_counter += write_op_value;
 		}
-
 		stream->_current_index_write = 0;
 		stream->_dirty_buffer_write = 0;
 	}
-
 	return c;
 }
 
