@@ -1,6 +1,0 @@
-../util/linux/so_stdio.c:409: WARNING:BRACES: braces {} are not necessary for single statement blocks
-../util/linux/so_stdio.c:268: WARNING:LONG_LINE: line over 80 characters
-../util/linux/constant_values.h:49: WARNING:MISSING_EOF_NEWLINE: adding a line without newline at end of file
-../util/linux/so_stdio.c:268: ERROR:SPACING: space prohibited after that '*' (ctx:WxW)
-00) Sources check...........................................failed  [ 0/95]
-01) Test fopen arguments....................................passed  [02/95]

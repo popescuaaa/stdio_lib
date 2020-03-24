@@ -246,7 +246,8 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	int index;
 
 	for (index = 0; index < total_amount; index++) {
-		current_char = so_fputc(*((unsigned char *)ptr + index), stream);
+		current_char = so_fputc(*((unsigned char *)ptr + index),
+		stream);
 		if (current_char == SO_EOF)
 			return count / size;
 		count++;
@@ -298,12 +299,8 @@ int so_fputc(int c, SO_FILE *stream)
 			write_data = stream->_buffer_write + write_counter;
 			write_op_value = write(stream->_file_descriptor,
 					       write_data,
-					       BUFFSIZE);
-			if (write_op_value == 0) {
-				stream->_error_flag = WITH_ERROR;
-				return SO_EOF;
-			}
-			if (write_op_value == -1) {
+					       BUFFSIZE - write_counter);
+			if (write_op_value <= 0) {
 				stream->_error_flag = WITH_ERROR;
 				return SO_EOF;
 			}
@@ -370,9 +367,8 @@ SO_FILE *so_popen(const char *command, const char *type)
 	default: {
 		SO_FILE *file = (SO_FILE *) malloc(sizeof(SO_FILE));
 
-		if (file == NULL) {
+		if (file == NULL)
 			exit(BAD_ALLOC);
-		}
 		if (strcmp(type, "r") == 0) {
 			close(_file_descriptor_write);
 			file->_file_descriptor = _file_descriptor_read;
@@ -405,9 +401,10 @@ int so_pclose(SO_FILE *stream)
 	int child_process_id = stream->_child_process_id;
 
 	so_fclose(stream);
-	pid_waiting_process_result = waitpid(child_process_id, &waiting_status, 0);
-	if (pid_waiting_process_result == -1) {
+	pid_waiting_process_result =
+		waitpid(child_process_id,
+		&waiting_status, 0);
+	if (pid_waiting_process_result == -1)
 		return -1;
-	}
 	return waiting_status;
 }

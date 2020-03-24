@@ -62,6 +62,6 @@ int main(int argc, char *argv[])
 	FAIL_IF(ret != 0, "Incorrect return value for so_fclose: got %d, expected %d\n", ret, 0);
 	
 	FAIL_IF(!compare_file(fpath, buf, buf_len), "Incorrect data in file\n");
-
+	
 	return 0;
 }
