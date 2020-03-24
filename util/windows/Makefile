@@ -1,6 +1,6 @@
 CC = cl
 L = link
-CFLAGS = /nologo /W3 /DDLL_IMPORTS
+CFLAGS = /nologo /W3 /DDLL_EXPORTS
 
 build: so_stdio.lib
 

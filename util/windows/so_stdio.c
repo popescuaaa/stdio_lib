@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h> 
 #include <windows.h>
+#define DLL_IMPORTS
 #include "so_stdio.h"
 
 #define BUFFSIZE                                4096
