@@ -14,14 +14,14 @@ struct _so_file {
 	int _file_descriptor;
 	unsigned char _buffer_read[BUFFSIZE];
 	unsigned char _buffer_write[BUFFSIZE];
-	int _current_index_read;
-	int _current_limit_read;
-	int _current_index_write;
-	int _read_flag;
-	int _write_flag;
-	int _dirty_buffer_write;
-	int _error_flag;
-	int _child_process_id;
+	int _current_index_read; /* index for read buffer */
+	int _current_limit_read; /* the limit of the read buffer */
+	int _current_index_write; /* index for write buffer */
+	int _read_flag; /* if the read buffer is used */
+	int _write_flag; /* if the write buffer is used */
+	int _dirty_buffer_write; /* if the last operation was read */
+	int _error_flag; /* store the exiting error during process */
+	int _child_process_id; /* for popen only */
 };
 
 FUNC_DECL_PREFIX SO_FILE
@@ -123,6 +123,8 @@ FUNC_DECL_PREFIX SO_FILE
 	new_file->_current_index_write = 0;
 	new_file->_dirty_buffer_write = 0;
 	new_file->_error_flag = NO_ERROR;
+	/* Mainly the flags will be used to calculate */
+	/* the current position in file. */
 	new_file->_read_flag = _read_flag;
 	new_file->_write_flag = _write_flag;
 
@@ -136,6 +138,9 @@ int so_fclose(SO_FILE *stream)
 	int so_fflush_result;
 
 	if (stream->_dirty_buffer_write == 1) {
+		/* If the las operation was a write one */
+		/* the whole write data must be wrote to */
+		/* the file. */
 		so_fflush_result = so_fflush(stream);
 		if (so_fflush_result != SUCCESS) {
 			stream->_error_flag = WITH_ERROR;
@@ -159,6 +164,10 @@ int so_fileno(SO_FILE *stream)
 	return stream->_file_descriptor;
 }
 
+/* Basically the fflush is used here */
+/* only to write the write buffer data to */
+/* the file in the case of overflow, or */
+/* if the close op. is called for the file */
 FUNC_DECL_PREFIX
 int so_fflush(SO_FILE *stream)
 {
@@ -199,6 +208,12 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 	return SUCCESS;
 }
 
+/* The main section of code where I use */
+/* the read and write flag is the ftell */
+/* function, where the data from the write */
+/* buffer is added and the data from the */
+/* read buffer is substracted as is bassically */
+/* something called "data in advance" */
 FUNC_DECL_PREFIX
 long so_ftell(SO_FILE *stream)
 {
@@ -260,18 +275,15 @@ int so_fgetc(SO_FILE *stream)
 {
 	int return_char;
 	int read_op_value;
-
+	/* If the index is bigger than the limit */
+	/* is the time for refill the read buffer */
 	if (stream->_current_index_read > stream->_current_limit_read) {
 		read_op_value = read(stream->_file_descriptor,
 				     stream->_buffer_read,
 				     BUFFSIZE);
 		stream->_current_index_read = 0;
 		stream->_current_limit_read = read_op_value - 1;
-		if (read_op_value == 0) {
-			stream->_error_flag = WITH_ERROR;
-			return SO_EOF;
-		}
-		if (read_op_value == -1) {
+		if (read_op_value <= 0) {
 			stream->_error_flag = WITH_ERROR;
 			return SO_EOF;
 		}
@@ -288,7 +300,9 @@ int so_fputc(int c, SO_FILE *stream)
 	int write_op_value;
 	unsigned char *write_data;
 
-	/* mark the dirty flag as active */
+	/* Mark the dirty flag as active */
+	/* The dirty name is choosed from the Intel */
+	/* name for accesed or corrupted data */
 	stream->_dirty_buffer_write = 1;
 	stream->_buffer_write[stream->_current_index_write] = (unsigned char)c;
 	stream->_current_index_write++;
@@ -315,6 +329,8 @@ int so_fputc(int c, SO_FILE *stream)
 FUNC_DECL_PREFIX
 int so_feof(SO_FILE *stream)
 {
+	/* The only time the EOF is hit */
+	/* is when the limit is default. */
 	if (stream->_current_limit_read == -1)
 		return -1;
 	return 0;
@@ -323,9 +339,14 @@ int so_feof(SO_FILE *stream)
 FUNC_DECL_PREFIX
 int so_ferror(SO_FILE *stream)
 {
+	/* The error flag is already stored */
 	return stream->_error_flag;
 }
 
+/* The floowing function is basically made as */
+/* the popen function from stdio.h, literally */
+/* this is the flow presented for pipes in course */
+/* exemples. */
 FUNC_DECL_PREFIX
 SO_FILE *so_popen(const char *command, const char *type)
 {
