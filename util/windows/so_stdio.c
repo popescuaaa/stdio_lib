@@ -5,30 +5,30 @@
 #define DLL_IMPORTS
 #include "so_stdio.h"
 
-#define BUFFSIZE                                4096
+#define BUFFSIZE 4096
 
-/****************** File opening modes ********************/
-#define READ_ONLY_MODE                          1
-#define READ_WRITE_MODE                         2
-#define WRITE_CREATE_TRUNCATE_MODE              3
-#define READ_WRITE_CREATE_TRUNCATE_MODE         4
-#define WRITE_ONLY_CREATE_APPEND_MODE           5
-#define READ_WRITE_CREATE_APPEND_MODE           6
-/************************* Errors ************************/
-#define BAD_ALLOC                               12
-#define SO_EOF                                  (-1)
-/************* Flags *************/
-#define ENABLE									1
-#define DISABLE									0
-/******************* Return values *********************/
-#define SUCCESS                                 0
-#define FAIL									(-1)
-/******************** Error flags **********************/
-#define NON_ERROR                               0
-#define WITH_ERROR                              1
-/******************* Dirty status *********************/
-#define DIRTY									1
-#define CLEAN									0
+/* File opening modes */
+#define READ_ONLY_MODE 1
+#define READ_WRITE_MODE 2
+#define WRITE_CREATE_TRUNCATE_MODE 3
+#define READ_WRITE_CREATE_TRUNCATE_MODE 4
+#define WRITE_ONLY_CREATE_APPEND_MODE 5
+#define READ_WRITE_CREATE_APPEND_MODE 6
+/* Errors */
+#define BAD_ALLOC 12
+#define SO_EOF (-1)
+/* Flags */
+#define ENABLE 1
+#define DISABLE	0
+/* Return values */
+#define SUCCESS 0
+#define FAIL (-1)
+/* Error flags */
+#define NON_ERROR 0
+#define WITH_ERROR 1
+/* Dirty status */
+#define DIRTY 1
+#define CLEAN 0
 
 /* There is a flag for the third flag */
 /* of access, an append one for knowing */
@@ -457,7 +457,6 @@ SO_FILE *so_popen(const char *command, const char *type)
 	pipe_file = (SO_FILE *) malloc(sizeof(SO_FILE));
 
 	if (!strcmp(type, "r")) {
-
 		ZeroMemory(&sa, sizeof(sa));
 		sa.bInheritHandle = TRUE;
 		ZeroMemory(&process_info_1, sizeof(process_info_1));
@@ -503,15 +502,19 @@ SO_FILE *so_popen(const char *command, const char *type)
 
 	}
 	else if (!strcmp(type, "w")) {
-
 		ZeroMemory(&sa, sizeof(sa));
 		sa.bInheritHandle = TRUE;
 		ZeroMemory(&process_info_1, sizeof(process_info_1));
-		response = CreatePipe(&handle_read, &handle_write, &sa, 0);
+		response = CreatePipe(
+			&handle_read, 
+			&handle_write, 
+			&sa, 
+			0
+		);
 		if (response == FALSE)
 			return NULL;
 		SetHandleInformation(handle_write, HANDLE_FLAG_INHERIT, 0);
-		RedirectHandle(&startup_info_1, handle_write, STD_INPUT_HANDLE);
+		RedirectHandle(&startup_info_1, handle_read, STD_INPUT_HANDLE);
 		response = CreateProcess(
 			NULL,
 			command_environment,
@@ -524,11 +527,10 @@ SO_FILE *so_popen(const char *command, const char *type)
 			&startup_info_1,
 			&process_info_1
 		);
-
 		if (response == FALSE)
 			return NULL;
 		CloseHandle(handle_read);
-		
+
 		pipe_file->_current_index_read = BUFFSIZE;
 		pipe_file->_read_flag = DISABLE;
 		pipe_file->_write_flag = ENABLE;
@@ -536,13 +538,13 @@ SO_FILE *so_popen(const char *command, const char *type)
 
 		pipe_file->_current_limit_read = BUFFSIZE - 1;
 		pipe_file->_current_index_write = 0;
-		pipe_file->_dirty_buffer_write = 0;
-		pipe_file->_error_flag = 0;
+		pipe_file->_dirty_buffer_write = CLEAN;
+		pipe_file->_error_flag = NON_ERROR;
 		pipe_file->_process_info = process_info_1;
 		pipe_file->_is_pipe = TRUE;
 
-
 		pipe_file->_file_handle = handle_write;
+
 	}
 	return pipe_file;
 }
