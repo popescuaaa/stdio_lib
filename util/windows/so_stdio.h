@@ -1,9 +1,3 @@
-/*
- * Operating System Executable Loader header
- *
- * 2019, Operating Systems
- */
-
 #ifndef SO_STDIO_H
 #define SO_STDIO_H
 
